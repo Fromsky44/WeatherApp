@@ -36,6 +36,7 @@ public:
 
 	void ParseCitiesJson();
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category="Default")
 	TArray<FString> Cities;
 
 	/* The actual HTTP call */
