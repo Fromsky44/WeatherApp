@@ -29,11 +29,12 @@ public:
 
 	FSQLiteDatabaseConnection Database;
 
-	float TemperatureEstimated;
-	float TemperatureFeelsLike;
-	FString WeatherDiscription;
-	float WindSpeed;
+	//float TemperatureEstimated;
+	//float TemperatureFeelsLike;
+	//FString WeatherDiscription;
+	//float WindSpeed;
 
+	UFUNCTION(BlueprintCallable)
 	void ParseCitiesJson();
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category="Default")
@@ -41,10 +42,13 @@ public:
 
 	/* The actual HTTP call */
 	UFUNCTION(BlueprintCallable)
-	void WeatherHttpCall();
+	void WeatherHttpCall(FString City);
 
 	/*Assign this function to call when the GET request processes sucessfully*/
 	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	UFUNCTION(BlueprintCallable)
+	void GetDataFromDatabase();
 
 	void BeginPlay() override;
 
