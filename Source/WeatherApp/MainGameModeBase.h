@@ -21,19 +21,13 @@ class WEATHERAPP_API AMainGameModeBase : public AGameModeBase
 	AMainGameModeBase();
 
 private:
-	UPROPERTY()
 	FString MainLink;
 
-public:
 	FHttpModule* Http;
 
 	FSQLiteDatabaseConnection Database;
 
-	//float TemperatureEstimated;
-	//float TemperatureFeelsLike;
-	//FString WeatherDiscription;
-	//float WindSpeed;
-
+public:
 	UFUNCTION(BlueprintCallable)
 	void ParseCitiesJson();
 
@@ -46,6 +40,9 @@ public:
 
 	/*Assign this function to call when the GET request processes sucessfully*/
 	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	UFUNCTION(BlueprintCallable)
+	void OpenDatabase();
 
 	UFUNCTION(BlueprintCallable)
 	void GetDataFromDatabase();
