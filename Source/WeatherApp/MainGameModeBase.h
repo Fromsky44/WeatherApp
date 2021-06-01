@@ -28,11 +28,29 @@ private:
 	FSQLiteDatabaseConnection Database;
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void ParseCitiesJson();
-
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category="Default")
 	TArray<FString> Cities;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<FString> CitiesFromDB;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<float> TemperatureEstimatedFromDB;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<float> TemperatureFeelFromDB;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<FString> WeatherDescriptionFromDB;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<float> WindSpeedFromDB;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	TArray<FString> DateTimeFromDB;
+
+	UFUNCTION(BlueprintCallable)
+	void ParseCitiesJson();
 
 	/* The actual HTTP call */
 	UFUNCTION(BlueprintCallable)

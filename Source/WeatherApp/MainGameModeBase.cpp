@@ -50,6 +50,7 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 		TSharedPtr<FJsonObject> JsonArrayObject = JsonWeatherArray[0]->AsObject();
 		FString WeatherDiscription = JsonArrayObject->GetStringField("description");
 		float WindSpeed = JsonObject->GetObjectField("wind")->GetNumberField("speed");
+		FDateTime DateTime = FDateTime::Now();
 
 		UE_LOG(LogTemp, Warning, TEXT("%s"), *City);
 		UE_LOG(LogTemp, Warning, TEXT("%f"), TemperatureEstimated);
@@ -58,7 +59,7 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 		UE_LOG(LogTemp, Warning, TEXT("%f"), WindSpeed);
 
 		// Inserting in DB
-		FString SQLInsert = "INSERT INTO cities VALUES (" + City + ", " + FString::SanitizeFloat(TemperatureEstimated) + ", " + FString::SanitizeFloat(TemperatureFeelsLike) + ", '" + WeatherDiscription + "', " + FString::SanitizeFloat(WindSpeed) + ")";
+		FString SQLInsert = "INSERT INTO cities VALUES ('" + City + "', " + FString::SanitizeFloat(TemperatureEstimated) + ", " + FString::SanitizeFloat(TemperatureFeelsLike) + ", '" + WeatherDiscription + "', " + FString::SanitizeFloat(WindSpeed) + ", '" + DateTime.ToString() + "')";
 		UE_LOG(LogTemp, Warning, TEXT("Inserted: %s"), *SQLInsert);
 		if (!Database.Execute(*SQLInsert))
 		{
@@ -70,9 +71,9 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 
 void AMainGameModeBase::OpenDatabase()
 {
-	FString DatabaseLocation = FPaths::ProjectDir() + "/Source/test.db";
+	FString DatabaseLocation = FPaths::ProjectDir() + "/Source/CitiesWeather.db";
 	Database.Open(*DatabaseLocation, TEXT(""), TEXT(""));
-	if (!Database.Execute(TEXT("CREATE TABLE IF NOT EXISTS cities (city text NOT NULL,temp float,temp_feel float, weather_description text, wind_speed float)")))
+	if (!Database.Execute(TEXT("CREATE TABLE IF NOT EXISTS cities (city text NOT NULL,temp float,temp_feel float, weather_description text, wind_speed float, date text)")))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Table was not created"));
 	}
@@ -80,30 +81,36 @@ void AMainGameModeBase::OpenDatabase()
 
 void AMainGameModeBase::GetDataFromDatabase()
 {
-	TArray<TArray<FString>> DataSet;
+	CitiesFromDB.Empty();
+	TemperatureEstimatedFromDB.Empty();
+	TemperatureFeelFromDB.Empty();
+	WeatherDescriptionFromDB.Empty();
+	WindSpeedFromDB.Empty();
+	DateTimeFromDB.Empty();
 	FDataBaseRecordSet* RecordSet;
 	Database.Execute(TEXT("SELECT DISTINCT city, temp, temp_feel, weather_description, wind_speed FROM cities"), RecordSet);
 	FDataBaseRecordSet::TIterator Iter(RecordSet);
 	TArray<FDatabaseColumnInfo> ColumnNames = RecordSet->GetColumnNames();
 	for (int i = 1; i <= RecordSet->GetRecordCount(); i++)
 	{
-		TArray<FString> DataSetRow;
 		FString City = Iter->GetString(*ColumnNames[0].ColumnName);
-		DataSetRow.Emplace(*City);
-		FString TemperatureEstimated = FString::SanitizeFloat(Iter->GetFloat(*ColumnNames[1].ColumnName));
-		DataSetRow.Emplace(*TemperatureEstimated);
-		FString TemperatureFeel = FString::SanitizeFloat(Iter->GetFloat(*ColumnNames[2].ColumnName));
-		DataSetRow.Emplace(*TemperatureFeel);
+		CitiesFromDB.Emplace(*City);
+		float TemperatureEstimated = Iter->GetFloat(*ColumnNames[1].ColumnName);
+		TemperatureEstimatedFromDB.Emplace(TemperatureEstimated);
+		float TemperatureFeel = Iter->GetFloat(*ColumnNames[2].ColumnName);
+		TemperatureFeelFromDB.Emplace(TemperatureFeel);
 		FString WeatherDesription = Iter->GetString(*ColumnNames[3].ColumnName);
-		DataSetRow.Emplace(*WeatherDesription);
-		FString WindSpeed = FString::SanitizeFloat(Iter->GetFloat(*ColumnNames[4].ColumnName));
-		DataSetRow.Emplace(*WindSpeed);
+		WeatherDescriptionFromDB.Emplace(*WeatherDesription);
+		float WindSpeed = Iter->GetFloat(*ColumnNames[4].ColumnName);
+		WindSpeedFromDB.Emplace(WindSpeed);
+		FString DateTime = Iter->GetString(*ColumnNames[5].ColumnName);
+		DateTimeFromDB.Emplace(DateTime);
 		UE_LOG(LogTemp, Warning, TEXT("City: %s"), *Iter->GetString(*ColumnNames[0].ColumnName));
 		UE_LOG(LogTemp, Warning, TEXT("Temperature Estimated: %f"), Iter->GetFloat(*ColumnNames[1].ColumnName));
 		UE_LOG(LogTemp, Warning, TEXT("Temperature Feel: %f"), Iter->GetFloat(*ColumnNames[2].ColumnName));
 		UE_LOG(LogTemp, Warning, TEXT("Weather Desription: %s"), *Iter->GetString(*ColumnNames[3].ColumnName));
 		UE_LOG(LogTemp, Warning, TEXT("Wind Speed: %f"), Iter->GetFloat(*ColumnNames[4].ColumnName));
-		DataSet.Emplace(DataSetRow);
+		UE_LOG(LogTemp, Warning, TEXT("DateTime: %s"), *DateTime);
 		Iter.operator++();
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Number of Records: %i"), Iter->GetRecordCount());
