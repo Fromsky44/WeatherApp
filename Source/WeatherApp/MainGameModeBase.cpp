@@ -44,8 +44,8 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 	{
 		//Get the value of the json object by field name
 		FString City = JsonObject->GetStringField("name");
-		float TemperatureEstimated = JsonObject->GetObjectField("main")->GetNumberField("temp");
-		float TemperatureFeelsLike = JsonObject->GetObjectField("main")->GetNumberField("feels_like");
+		float TemperatureEstimated = JsonObject->GetObjectField("main")->GetNumberField("temp") - 273.15;
+		float TemperatureFeelsLike = JsonObject->GetObjectField("main")->GetNumberField("feels_like") - 273.15;
 		TArray<TSharedPtr<FJsonValue>> JsonWeatherArray = JsonObject->GetArrayField("weather");
 		TSharedPtr<FJsonObject> JsonArrayObject = JsonWeatherArray[0]->AsObject();
 		FString WeatherDiscription = JsonArrayObject->GetStringField("description");
@@ -81,38 +81,20 @@ void AMainGameModeBase::OpenDatabase()
 
 void AMainGameModeBase::GetDataFromDatabase()
 {
-	CitiesFromDB.Empty();
-	TemperatureEstimatedFromDB.Empty();
-	TemperatureFeelFromDB.Empty();
-	WeatherDescriptionFromDB.Empty();
-	WindSpeedFromDB.Empty();
-	DateTimeFromDB.Empty();
 	FDataBaseRecordSet* RecordSet;
-	Database.Execute(TEXT("SELECT DISTINCT city, temp, temp_feel, weather_description, wind_speed, date FROM cities"), RecordSet);
+	Database.Execute(TEXT("SELECT DISTINCT city, LAST_VALUE(temp) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(temp_feel) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(weather_description) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(wind_speed) OVER (PARTITION BY city ORDER BY date ASC), MAX(date) FROM cities GROUP BY city ORDER BY city ASC"), RecordSet);
 	FDataBaseRecordSet::TIterator Iter(RecordSet);
 	TArray<FDatabaseColumnInfo> ColumnNames = RecordSet->GetColumnNames();
 	for (int i = 1; i <= RecordSet->GetRecordCount(); i++)
 	{
-		FString City = Iter->GetString(*ColumnNames[0].ColumnName);
-		CitiesFromDB.Emplace(*City);
-		float TemperatureEstimated = Iter->GetFloat(*ColumnNames[1].ColumnName);
-		TemperatureEstimated -= 273.15;
-		TemperatureEstimatedFromDB.Emplace(TemperatureEstimated);
-		float TemperatureFeel = Iter->GetFloat(*ColumnNames[2].ColumnName);
-		TemperatureFeel -= 273.15;
-		TemperatureFeelFromDB.Emplace(TemperatureFeel);
-		FString WeatherDesription = Iter->GetString(*ColumnNames[3].ColumnName);
-		WeatherDescriptionFromDB.Emplace(*WeatherDesription);
-		float WindSpeed = Iter->GetFloat(*ColumnNames[4].ColumnName);
-		WindSpeedFromDB.Emplace(WindSpeed);
-		FString DateTime = Iter->GetString(*ColumnNames[5].ColumnName);
-		DateTimeFromDB.Emplace(DateTime);
-		UE_LOG(LogTemp, Warning, TEXT("City: %s"), *Iter->GetString(*ColumnNames[0].ColumnName));
-		UE_LOG(LogTemp, Warning, TEXT("Temperature Estimated: %f"), Iter->GetFloat(*ColumnNames[1].ColumnName));
-		UE_LOG(LogTemp, Warning, TEXT("Temperature Feel: %f"), Iter->GetFloat(*ColumnNames[2].ColumnName));
-		UE_LOG(LogTemp, Warning, TEXT("Weather Desription: %s"), *Iter->GetString(*ColumnNames[3].ColumnName));
-		UE_LOG(LogTemp, Warning, TEXT("Wind Speed: %f"), Iter->GetFloat(*ColumnNames[4].ColumnName));
-		UE_LOG(LogTemp, Warning, TEXT("DateTime: %s"), *DateTime);
+		FDataFromDB CityRow;
+		CityRow.City = Iter->GetString(*ColumnNames[0].ColumnName);
+		CityRow.TemperatureEstimated = Iter->GetFloat(*ColumnNames[1].ColumnName);
+		CityRow.TemperatureFeel = Iter->GetFloat(*ColumnNames[2].ColumnName);
+		CityRow.WeatherDesription = Iter->GetString(*ColumnNames[3].ColumnName);
+		CityRow.WindSpeed = Iter->GetFloat(*ColumnNames[4].ColumnName);
+		CityRow.DateTime = Iter->GetString(*ColumnNames[5].ColumnName);
+		CityInfoFromDB.Emplace(CityRow);
 		Iter.operator++();
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Number of Records: %i"), Iter->GetRecordCount());
@@ -146,7 +128,7 @@ void AMainGameModeBase::ParseCitiesJson()
 		{
 			FString Country = JsonValueJson->AsObject()->GetStringField("country");
 			FString City = JsonValueJson->AsObject()->GetStringField("name");
-			if (Country == "RU")
+			if (Country == "RU" && City != "-")
 			{
 				Cities.AddUnique(City);
 			}

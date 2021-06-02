@@ -13,6 +13,30 @@
  * 
  */
 
+USTRUCT(BlueprintType)
+struct FDataFromDB
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	FString City;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	float TemperatureEstimated;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	float TemperatureFeel;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	FString WeatherDesription;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	float WindSpeed;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
+	FString DateTime;
+};
+
 UCLASS()
 class WEATHERAPP_API AMainGameModeBase : public AGameModeBase
 {
@@ -32,22 +56,7 @@ public:
 	TArray<FString> Cities;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<FString> CitiesFromDB;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<float> TemperatureEstimatedFromDB;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<float> TemperatureFeelFromDB;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<FString> WeatherDescriptionFromDB;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<float> WindSpeedFromDB;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Default")
-	TArray<FString> DateTimeFromDB;
+	TArray<FDataFromDB> CityInfoFromDB;
 
 	UFUNCTION(BlueprintCallable)
 	void ParseCitiesJson();
