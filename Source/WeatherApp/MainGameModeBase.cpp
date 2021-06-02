@@ -88,7 +88,7 @@ void AMainGameModeBase::GetDataFromDatabase()
 	WindSpeedFromDB.Empty();
 	DateTimeFromDB.Empty();
 	FDataBaseRecordSet* RecordSet;
-	Database.Execute(TEXT("SELECT DISTINCT city, temp, temp_feel, weather_description, wind_speed FROM cities"), RecordSet);
+	Database.Execute(TEXT("SELECT DISTINCT city, temp, temp_feel, weather_description, wind_speed, date FROM cities"), RecordSet);
 	FDataBaseRecordSet::TIterator Iter(RecordSet);
 	TArray<FDatabaseColumnInfo> ColumnNames = RecordSet->GetColumnNames();
 	for (int i = 1; i <= RecordSet->GetRecordCount(); i++)
@@ -96,8 +96,10 @@ void AMainGameModeBase::GetDataFromDatabase()
 		FString City = Iter->GetString(*ColumnNames[0].ColumnName);
 		CitiesFromDB.Emplace(*City);
 		float TemperatureEstimated = Iter->GetFloat(*ColumnNames[1].ColumnName);
+		TemperatureEstimated -= 273.15;
 		TemperatureEstimatedFromDB.Emplace(TemperatureEstimated);
 		float TemperatureFeel = Iter->GetFloat(*ColumnNames[2].ColumnName);
+		TemperatureFeel -= 273.15;
 		TemperatureFeelFromDB.Emplace(TemperatureFeel);
 		FString WeatherDesription = Iter->GetString(*ColumnNames[3].ColumnName);
 		WeatherDescriptionFromDB.Emplace(*WeatherDesription);
