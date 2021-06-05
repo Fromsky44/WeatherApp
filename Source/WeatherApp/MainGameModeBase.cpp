@@ -13,6 +13,7 @@ AMainGameModeBase::AMainGameModeBase()
 	MainLink = "http://api.openweathermap.org/data/2.5/weather?APPID=1db23e366b79c4270b94472ec6ed1890&q=";
 	//When the object is constructed, Get the HTTP module
 	Http = &FHttpModule::Get();
+	InitialCities = { TEXT("Perm"), TEXT("Moscow") };
 }
 
 /*Http call*/
@@ -63,7 +64,7 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 		UE_LOG(LogTemp, Warning, TEXT("Inserted: %s"), *SQLInsert);
 		if (!Database.Execute(*SQLInsert))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Data was not inserted"));
+			UE_LOG(LogTemp, Warning, TEXT("Data was not inserted %s"), *Database.GetLastError());
 			return;
 		}
 	}
@@ -73,16 +74,50 @@ void AMainGameModeBase::OpenDatabase()
 {
 	FString DatabaseLocation = FPaths::ProjectDir() + "/Source/CitiesWeather.db";
 	Database.Open(*DatabaseLocation, TEXT(""), TEXT(""));
-	if (!Database.Execute(TEXT("CREATE TABLE IF NOT EXISTS cities (city text NOT NULL,temp float,temp_feel float, weather_description text, wind_speed float, date text)")))
+	if (!Database.Execute(TEXT("SELECT * FROM cities")))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Table was not created"));
+		UE_LOG(LogTemp, Warning, TEXT("Nothing to SELECT"));
+		if (!Database.Execute(TEXT("CREATE TABLE IF NOT EXISTS cities (city text NOT NULL,temp float,temp_feel float, weather_description text, wind_speed float, date text)")))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Table was not created"));
+			return;
+		}
+		for (FString InitialCity : InitialCities)
+		{
+			WeatherHttpCall(InitialCity);
+		}
 	}
 }
 
 void AMainGameModeBase::GetDataFromDatabase()
 {
+	CityInfoFromDB.Empty();
 	FDataBaseRecordSet* RecordSet;
 	Database.Execute(TEXT("SELECT DISTINCT city, LAST_VALUE(temp) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(temp_feel) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(weather_description) OVER (PARTITION BY city ORDER BY date ASC), LAST_VALUE(wind_speed) OVER (PARTITION BY city ORDER BY date ASC), MAX(date) FROM cities GROUP BY city ORDER BY city ASC"), RecordSet);
+	FDataBaseRecordSet::TIterator Iter(RecordSet);
+	TArray<FDatabaseColumnInfo> ColumnNames = RecordSet->GetColumnNames();
+	for (int i = 1; i <= RecordSet->GetRecordCount(); i++)
+	{
+		FDataFromDB CityRow;
+		CityRow.City = Iter->GetString(*ColumnNames[0].ColumnName);
+		CityRow.TemperatureEstimated = Iter->GetFloat(*ColumnNames[1].ColumnName);
+		CityRow.TemperatureFeel = Iter->GetFloat(*ColumnNames[2].ColumnName);
+		CityRow.WeatherDesription = Iter->GetString(*ColumnNames[3].ColumnName);
+		CityRow.WindSpeed = Iter->GetFloat(*ColumnNames[4].ColumnName);
+		CityRow.DateTime = Iter->GetString(*ColumnNames[5].ColumnName);
+		CityInfoFromDB.Emplace(CityRow);
+		Iter.operator++();
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Number of Records: %i"), Iter->GetRecordCount());
+	delete RecordSet;
+}
+
+void AMainGameModeBase::GetCityDataFromDatabase(FString City)
+{
+	CityInfoFromDB.Empty();
+	FDataBaseRecordSet* RecordSet;
+	FString SQLInsert = "SELECT DISTINCT city, temp, temp_feel, weather_description, wind_speed, date FROM cities WHERE city = '" + City + "' ORDER BY date DESC";
+	Database.Execute(*SQLInsert, RecordSet);
 	FDataBaseRecordSet::TIterator Iter(RecordSet);
 	TArray<FDatabaseColumnInfo> ColumnNames = RecordSet->GetColumnNames();
 	for (int i = 1; i <= RecordSet->GetRecordCount(); i++)

@@ -51,7 +51,13 @@ private:
 
 	FSQLiteDatabaseConnection Database;
 
+	/*Assign this function to call when the GET request processes sucessfully*/
+	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
 public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Default")
+	TArray<FString> InitialCities;
+	
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category="Default")
 	TArray<FString> Cities;
 
@@ -61,18 +67,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ParseCitiesJson();
 
+	UFUNCTION(BlueprintCallable)
+	void OpenDatabase();
+
 	/* The actual HTTP call */
 	UFUNCTION(BlueprintCallable)
 	void WeatherHttpCall(FString City);
 
-	/*Assign this function to call when the GET request processes sucessfully*/
-	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-
-	UFUNCTION(BlueprintCallable)
-	void OpenDatabase();
-
 	UFUNCTION(BlueprintCallable)
 	void GetDataFromDatabase();
+
+	UFUNCTION(BlueprintCallable)
+	void GetCityDataFromDatabase(FString City);
 
 	void BeginPlay() override;
 
