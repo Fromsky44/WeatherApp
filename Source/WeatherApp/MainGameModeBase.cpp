@@ -23,7 +23,8 @@ void AMainGameModeBase::WeatherHttpCall(FString City)
 	TSharedRef<IHttpRequest> Request = Http->CreateRequest();
 	// Bind function with response
 	Request->OnProcessRequestComplete().BindUObject(this, &AMainGameModeBase::OnResponseReceived);
-	Request->SetURL(MainLink + City);
+	Request->SetURL(FString::Printf(TEXT("%s%s"),
+		*MainLink, *FGenericPlatformHttp::UrlEncode(City)));
 	Request->SetVerb("GET");
 	Request->SetHeader(TEXT("User-Agent"), TEXT("X-UnrealEngine-Agent"));
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
@@ -34,6 +35,12 @@ void AMainGameModeBase::WeatherHttpCall(FString City)
 /*Assigned function on successfull http call*/
 void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
+	if (!bWasSuccessful)
+	{
+		UE_LOG(LogTemp, Error, TEXT("No connection either to Internet or to openweathermap.org"));
+		return;
+	}
+	
 	//Create a pointer to hold the json serialized data
 	TSharedPtr<FJsonObject> JsonObject;
 
@@ -52,12 +59,6 @@ void AMainGameModeBase::OnResponseReceived(FHttpRequestPtr Request, FHttpRespons
 		FString WeatherDiscription = JsonArrayObject->GetStringField("description");
 		float WindSpeed = JsonObject->GetObjectField("wind")->GetNumberField("speed");
 		FDateTime DateTime = FDateTime::Now();
-
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *City);
-		UE_LOG(LogTemp, Warning, TEXT("%f"), TemperatureEstimated);
-		UE_LOG(LogTemp, Warning, TEXT("%f"), TemperatureFeelsLike);
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *WeatherDiscription);
-		UE_LOG(LogTemp, Warning, TEXT("%f"), WindSpeed);
 
 		// Inserting in DB
 		FString SQLInsert = "INSERT INTO cities VALUES ('" + City + "', " + FString::SanitizeFloat(TemperatureEstimated) + ", " + FString::SanitizeFloat(TemperatureFeelsLike) + ", '" + WeatherDiscription + "', " + FString::SanitizeFloat(WindSpeed) + ", '" + DateTime.ToString() + "')";
